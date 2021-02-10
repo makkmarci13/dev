@@ -240,6 +240,7 @@ install_dependencies(){
 		curl -sSL https://get.docker.com/ | CHANNEL=stable bash
         LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
         add-apt-repository -y ppa:chris-lea/redis-server
+		apt-add-repository -y universe
 		add-apt-repository -y ppa:certbot/certbot
         add-apt-repository -y ppa:nginx/development
         apt -y install tuned dnsutils
