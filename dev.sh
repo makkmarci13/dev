@@ -235,6 +235,8 @@ install_dependencies(){
         echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99force-ipv4
         apt-get -y update
 	    curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
+		curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+		apt-get -y install nodejs
 		curl -sSL https://get.docker.com/ | CHANNEL=stable bash
         LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
         add-apt-repository -y ppa:chris-lea/redis-server
@@ -316,10 +318,14 @@ install_pterodactyl() {
 
     output "Downloading Pterodactyl..."
     mkdir -p /var/www/dev
+	npm i -g yarn
     cd /var/www
     curl -Lo dev.tar.gz https://github.com/OreoKitten/dev/releases/download/v1.0/dev.tar.gz
     tar -xzvf dev.tar.gz
 	cd /var/www/dev
+	yarn install
+	yarn add @emotion/react
+	yarn build:production
     chmod -R 755 storage/* bootstrap/cache/
 
     output "Installing Pterodactyl..."
