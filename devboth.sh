@@ -252,7 +252,11 @@ install_dependencies(){
         apt-get -y autoremove
         apt-get -y autoclean
         apt-get -y install curl
-        apt-get -y install php7.4 php7.4-{cli,gd,mysql,pdo,mbstring,tokenizer,bcmath,xml,fpm,curl,zip} nginx tar unzip git redis-server nginx git wget expect
+        if [ "$webserver" = "1" ]; then
+            apt -y install php7.4 php7.4-{cli,gd,mysql,pdo,mbstring,tokenizer,bcmath,xml,fpm,curl,zip} nginx tar unzip git redis-server nginx git wget expect
+        elif [ "$webserver" = "2" ]; then
+             apt -y install php7.4 php7.4-{cli,gd,mysql,pdo,mbstring,tokenizer,bcmath,xml,fpm,curl,zip} curl tar unzip git redis-server apache2 libapache2-mod-php7.4 redis-server git wget expect
+		fi
 		systemctl enable redis-server
         service redis-server start
         systemctl enable php7.4-fpm
@@ -499,11 +503,23 @@ EOF
 
 webserver_config(){
         if [ "$installoption" = "1" ]; then
+            if [ "$webserver" = "1" ]; then
                 nginx_config
+            elif [ "$webserver" = "2" ]; then
+                apache_config
+            fi
         elif [ "$installoption" = "3" ]; then
+            if [ "$webserver" = "1" ]; then
                 nginx_config
+            elif [ "$webserver" = "2" ]; then
+                apache_config
+            fi
         elif [ "$installoption" = "5" ]; then
+            if [ "$webserver" = "1" ]; then
                 nginx_config
+            elif [ "$webserver" = "2" ]; then
+                apache_config
+            fi
         fi
 }
 
@@ -536,7 +552,7 @@ After=docker.service
 User=root
 WorkingDirectory=/etc/dev
 LimitNOFILE=4096
-PIDFile=/var/run/dev/daemon.pid
+PIDFile=/var/run/wings/daemon.pid
 ExecStart=/usr/local/bin/dev
 Restart=on-failure
 StartLimitInterval=600
@@ -593,18 +609,34 @@ ssl_certs(){
     output "Installing Let's Encrypt and creating an SSL certificate..."
     cd /root
 	apt-get -y install certbot
+    if [ "$webserver" = "1" ]; then
         service nginx stop
+    elif [ "$webserver" = "2" ]; then
+        service apache2 stop
+    fi
 
     certbot certonly --standalone --email "$email" --agree-tos -d "$FQDN" --non-interactive
     
+        if [ "$webserver" = "1" ]; then
             service nginx restart
+        elif [ "$webserver" = "2" ]; then
+                service apache2 restart
+        fi
        
         if [ "$installoption" = "1" ]; then
+            if [ "$webserver" = "1" ]; then
                 (crontab -l ; echo '0 0,12 * * * certbot renew --pre-hook "service nginx stop" --post-hook "service nginx restart" >> /dev/null 2>&1')| crontab -
+            elif [ "$webserver" = "2" ]; then
+                (crontab -l ; echo '0 0,12 * * * certbot renew --pre-hook "service apache2 stop" --post-hook "service apache2 restart" >> /dev/null 2>&1')| crontab -
+            fi
         elif [ "$installoption" = "3" ]; then
             (crontab -l ; echo '0 0,12 * * * certbot renew --pre-hook "ufw allow 80" --pre-hook "service wings stop" --post-hook "ufw deny 80" --post-hook "service dev restart" >> /dev/null 2>&1')| crontab -
         elif [ "$installoption" = "5" ]; then
+            if [ "$webserver" = "1" ]; then
                 (crontab -l ; echo '0 0,12 * * * certbot renew --pre-hook "service nginx stop" --pre-hook "service wings stop" --post-hook "service nginx restart" --post-hook "service dev restart" >> /dev/null 2>&1')| crontab -
+            elif [ "$webserver" = "2" ]; then
+                (crontab -l ; echo '0 0,12 * * * certbot renew --pre-hook "service apache2 stop" --pre-hook "service wings stop" --post-hook "service apache2 restart" --post-hook "service dev restart" >> /dev/null 2>&1')| crontab -
+            fi
         fi
 }
 
