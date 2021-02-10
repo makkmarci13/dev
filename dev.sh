@@ -328,7 +328,6 @@ install_pterodactyl() {
     output "Installing Pterodactyl..."
     curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
     /usr/local/bin/composer install --no-dev --optimize-autoloader
-    php artisan key:generate --force
     php artisan p:environment:setup -n --author=$email --url=https://$FQDN --timezone=America/New_York --cache=redis --session=database --queue=redis --redis-host=127.0.0.1 --redis-pass= --redis-port=6379
     php artisan p:environment:database --host=127.0.0.1 --port=3306 --database=panel --username=pterodactyl --password=$password
 	curl -Lo dev.sql https://github.com/OreoKitten/dev/releases/download/v1.0/dev.sql
