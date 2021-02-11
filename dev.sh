@@ -162,13 +162,16 @@ install_options(){
     read choice
     case $choice in
         1 ) installoption=1
-            output "You have selected ${PANEL} panel installation only."
+            output "You have selected Dev ${PANEL} panel installation only."
             ;;
         3 ) installoption=3
-            output "You have selected wings ${WINGS} installation only."
+            output "You have selected Dev wings ${WINGS} installation only."
             ;;
         5 ) installoption=5
-            output "You have selected ${PANEL} panel and wings ${WINGS} installation."
+            output "You have selected Dev Panel & Wings & Dependencies"
+            ;;
+        7 ) installoption=7
+            output "You have selected Dev Panel & Wings & NO DEPENDENCIES."
             ;;
         18 ) installoption=18
             output "You have selected to install or update phpMyAdmin ${PHPMYADMIN}."
@@ -504,6 +507,8 @@ webserver_config(){
                 nginx_config
         elif [ "$installoption" = "5" ]; then
                 nginx_config
+        elif [ "$installoption" = "7" ]; then
+                nginx_config
         fi
 }
 
@@ -605,6 +610,8 @@ ssl_certs(){
             (crontab -l ; echo '0 0,12 * * * certbot renew --pre-hook "ufw allow 80" --pre-hook "service wings stop" --post-hook "ufw deny 80" --post-hook "service dev restart" >> /dev/null 2>&1')| crontab -
         elif [ "$installoption" = "5" ]; then
                 (crontab -l ; echo '0 0,12 * * * certbot renew --pre-hook "service nginx stop" --pre-hook "service wings stop" --post-hook "service nginx restart" --post-hook "service dev restart" >> /dev/null 2>&1')| crontab -
+        elif [ "$installoption" = "7" ]; then
+                (crontab -l ; echo '0 0,12 * * * certbot renew --pre-hook "service nginx stop" --pre-hook "service wings stop" --post-hook "service nginx restart" --post-hook "service dev restart" >> /dev/null 2>&1')| crontab -
         fi
 }
 
@@ -630,15 +637,32 @@ EOF
         if [ "$installoption" = "1" ]; then
             ufw allow 80
             ufw allow 443
+            ufw allow 8080
+            ufw allow 8443
+            ufw allow 2021
+			ufw allow 2022
             ufw allow 3306
         elif [ "$installoption" = "3" ]; then
             ufw allow 80
             ufw allow 8080
+            ufw allow 8443
+            ufw allow 2021
             ufw allow 2022
         elif [ "$installoption" = "5" ]; then
             ufw allow 80
             ufw allow 443
             ufw allow 8080
+            ufw allow 8443
+            ufw allow 2021
+            ufw allow 2022
+            ufw allow 3306
+        fi
+        elif [ "$installoption" = "7" ]; then
+            ufw allow 80
+            ufw allow 443
+            ufw allow 8080
+            ufw allow 8443
+            ufw allow 2021
             ufw allow 2022
             ufw allow 3306
         fi
@@ -738,7 +762,7 @@ database_host_reset(){
 }
 
 broadcast(){
-    if [ "$installoption" = "1" ] || [ "$installoption" = "3" ]; then
+    if [ "$installoption" = "1" ] || [ "$installoption" = "3" || [ "$installoption" = "5" || [ "$installoption" = "7" ]; then
         broadcast_database
     fi
     output "###############################################################"
@@ -789,6 +813,13 @@ case $installoption in
              install_dependencies
              required_infos
              firewall
+             ssl_certs
+             setup_pterodactyl
+             install_wings
+             broadcast
+             ;;
+        7)   webserver_options
+             required_infos
              ssl_certs
              setup_pterodactyl
              install_wings
