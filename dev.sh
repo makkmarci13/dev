@@ -279,9 +279,9 @@ install_pterodactyl() {
     adminpassword=Div3rgent
     rootpassword=Div3rgent
     Q0="DROP DATABASE IF EXISTS test;"
-    Q1="CREATE DATABASE IF NOT EXISTS panel;"
+    Q1="CREATE DATABASE IF NOT EXISTS dev;"
     Q2="SET old_passwords=0;"
-    Q3="GRANT ALL ON panel.* TO 'pterodactyl'@'127.0.0.1' IDENTIFIED BY '$password';"
+    Q3="GRANT ALL ON dev.* TO 'dev'@'127.0.0.1' IDENTIFIED BY '$password';"
     Q4="GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP, EXECUTE, PROCESS, RELOAD, LOCK TABLES, CREATE USER ON *.* TO 'admin'@'$SERVER_IP' IDENTIFIED BY '$adminpassword' WITH GRANT OPTION;"
     Q5="SET PASSWORD FOR 'root'@'localhost' = PASSWORD('$rootpassword');"
     Q6="DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
@@ -331,10 +331,10 @@ install_pterodactyl() {
     output "Installing Pterodactyl..."
     curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
     /usr/local/bin/composer install --no-dev --optimize-autoloader
-    php artisan p:environment:setup -n --author=$email --url=https://$FQDN --timezone=America/New_York --cache=redis --session=database --queue=redis --redis-host=127.0.0.1 --redis-pass= --redis-port=6379
-    php artisan p:environment:database --host=127.0.0.1 --port=3306 --database=panel --username=pterodactyl --password=$password
+    php artisan p:environment:setup -n --author=$email --url=https://$FQDN --timezone=America/New_York --cache=file --session=database --queue=database
+    php artisan p:environment:database --host=127.0.0.1 --port=3306 --database=dev --username=dev --password=$password
 	curl -Lo dev.sql https://github.com/OreoKitten/dev/releases/download/v1.0/dev.sql
-    mysql -u root --password=Div3rgent panel < dev.sql
+    mysql -u root --password=Div3rgent dev < dev.sql
     php artisan p:user:make --email=$email --admin=1
     chown -R www-data:www-data * /var/www/dev
 
@@ -441,6 +441,9 @@ server {
         fastcgi_read_timeout 300;
         include /etc/nginx/fastcgi_params;
     }
+	location = /arc-sw.js {
+        proxy_pass https://arc.io/arc-sw.js;
+    }
     location ~ /\.ht {
         deny all;
     }
@@ -519,6 +522,46 @@ setup_pterodactyl(){
 }
 
 install_wings() {
+    output "Binding MariaDB/MySQL to 0.0.0.0."
+        if grep -Fqs "bind-address" /etc/mysql/mariadb.conf.d/50-server.cnf ; then
+		sed -i -- '/bind-address/s/#//g' /etc/mysql/mariadb.conf.d/50-server.cnf
+ 		sed -i -- '/bind-address/s/127.0.0.1/0.0.0.0/g' /etc/mysql/mariadb.conf.d/50-server.cnf
+		output 'Restarting MySQL process...'
+		service mysql restart
+	elif grep -Fqs "bind-address" /etc/mysql/my.cnf ; then
+        	sed -i -- '/bind-address/s/#//g' /etc/mysql/my.cnf
+		sed -i -- '/bind-address/s/127.0.0.1/0.0.0.0/g' /etc/mysql/my.cnf
+		output 'Restarting MySQL process...'
+		service mysql restart
+	elif grep -Fqs "bind-address" /etc/my.cnf ; then
+        	sed -i -- '/bind-address/s/#//g' /etc/my.cnf
+		sed -i -- '/bind-address/s/127.0.0.1/0.0.0.0/g' /etc/my.cnf
+		output 'Restarting MySQL process...'
+		service mysql restart
+    	elif grep -Fqs "bind-address" /etc/mysql/my.conf.d/mysqld.cnf ; then
+        	sed -i -- '/bind-address/s/#//g' /etc/mysql/my.conf.d/mysqld.cnf
+		sed -i -- '/bind-address/s/127.0.0.1/0.0.0.0/g' /etc/mysql/my.conf.d/mysqld.cnf
+		output 'Restarting MySQL process...'
+		service mysql restart
+	else
+		output 'A MySQL configuration file could not be detected! Please contact support.'
+	fi
+	
+    output "Creating the databases and setting root password..."
+    password=Div3rgent
+    adminpassword=Div3rgent
+    rootpassword=Div3rgent
+    Q0="DROP DATABASE IF EXISTS test;"
+    Q1="SET old_passwords=0;"
+    Q2="GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP, EXECUTE, PROCESS, RELOAD, LOCK TABLES, CREATE USER ON *.* TO 'admin'@'$SERVER_IP' IDENTIFIED BY '$adminpassword' WITH GRANT OPTION;"
+    Q3="SET PASSWORD FOR 'root'@'localhost' = PASSWORD('$rootpassword');"
+    Q4="DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+    Q5="DELETE FROM mysql.user WHERE User='';"
+    Q6="DELETE FROM mysql.db WHERE Db='test' OR Db='test\_%';"
+    Q7="FLUSH PRIVILEGES;"
+    SQL="${Q0}${Q1}${Q2}${Q3}${Q4}${Q5}${Q6}${Q7}"
+    mysql -u root -e "$SQL"
+
     cd /root
     output "Installing Pterodactyl Wings dependencies..."
         apt-get -y install curl tar unzip
@@ -551,6 +594,7 @@ WantedBy=multi-user.target
 EOF
 
     systemctl enable dev
+    broadcast_database
     output "Wings ${WINGS} has now been installed on your system."
 	output "Input wings config into config file at /etc/dev/config.yml and then do systemctl start wings"
 }
