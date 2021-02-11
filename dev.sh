@@ -700,7 +700,6 @@ EOF
             ufw allow 2021
             ufw allow 2022
             ufw allow 3306
-        fi
         elif [ "$installoption" = "7" ]; then
             ufw allow 80
             ufw allow 443
@@ -806,9 +805,7 @@ database_host_reset(){
 }
 
 broadcast(){
-    if [ "$installoption" = "1" ] || [ "$installoption" = "3" || [ "$installoption" = "5" || [ "$installoption" = "7" ]; then
-        broadcast_database
-    fi
+    broadcast_database
     output "###############################################################"
     output "FIREWALL INFORMATION"
     output ""
