@@ -20,7 +20,7 @@ preflight(){
 
     output "Please note that this script is meant to be installed on a fresh OS. Installing it on a non-fresh OS may cause problems."
     output "Automatic operating system detection initialized..."
-
+	sudo -i
     os_check
 
     if [ "$EUID" -ne 0 ]; then
@@ -154,32 +154,29 @@ os_check(){
 install_options(){
     output "Please select your installation option:"
     output "[1] Install the panel ${PANEL}."
-    output "[3] Install the wings ${WINGS}."
-    output "[5] Install the panel ${PANEL} and wings ${WINGS}."
+    output "[2] Install the wings ${WINGS}."
+    output "[3] Install the panel ${PANEL} and wings ${WINGS}."
     output "[18] Install or update to phpMyAdmin (${PHPMYADMIN}) (only use this after you have installed the panel)."
-    output "[21] Emergency MariaDB root password reset."
-    output "[22] Emergency database host information reset."
+    output "[19] Emergency MariaDB root password reset."
+    output "[20] Emergency database host information reset."
     read choice
     case $choice in
         1 ) installoption=1
             output "You have selected Dev ${PANEL} panel installation only."
             ;;
-        3 ) installoption=3
+        2 ) installoption=3
             output "You have selected Dev wings ${WINGS} installation only."
             ;;
-        5 ) installoption=5
-            output "You have selected Dev Panel & Wings & Dependencies"
-            ;;
-        7 ) installoption=7
-            output "You have selected Dev Panel & Wings & NO DEPENDENCIES."
+        3 ) installoption=5
+            output "You have selected Dev Panel & Wings"
             ;;
         18 ) installoption=18
             output "You have selected to install or update phpMyAdmin ${PHPMYADMIN}."
             ;;
-        21 ) installoption=21
+        19 ) installoption=19
             output "You have selected MariaDB root password reset."
             ;;
-        22 ) installoption=22
+        20 ) installoption=20
             output "You have selected Database Host information reset."
             ;;
         * ) output "You did not enter a valid selection."
@@ -506,11 +503,9 @@ EOF
 webserver_config(){
         if [ "$installoption" = "1" ]; then
                 nginx_config
+        elif [ "$installoption" = "2" ]; then
+                nginx_config
         elif [ "$installoption" = "3" ]; then
-                nginx_config
-        elif [ "$installoption" = "5" ]; then
-                nginx_config
-        elif [ "$installoption" = "7" ]; then
                 nginx_config
         fi
 }
@@ -650,11 +645,9 @@ ssl_certs(){
        
         if [ "$installoption" = "1" ]; then
                 (crontab -l ; echo '0 0,12 * * * certbot renew --pre-hook "service nginx stop" --post-hook "service nginx restart" >> /dev/null 2>&1')| crontab -
-        elif [ "$installoption" = "3" ]; then
+        elif [ "$installoption" = "2" ]; then
             (crontab -l ; echo '0 0,12 * * * certbot renew --pre-hook "ufw allow 80" --pre-hook "service wings stop" --post-hook "ufw deny 80" --post-hook "service dev restart" >> /dev/null 2>&1')| crontab -
-        elif [ "$installoption" = "5" ]; then
-                (crontab -l ; echo '0 0,12 * * * certbot renew --pre-hook "service nginx stop" --pre-hook "service wings stop" --post-hook "service nginx restart" --post-hook "service dev restart" >> /dev/null 2>&1')| crontab -
-        elif [ "$installoption" = "7" ]; then
+        elif [ "$installoption" = "3" ]; then
                 (crontab -l ; echo '0 0,12 * * * certbot renew --pre-hook "service nginx stop" --pre-hook "service wings stop" --post-hook "service nginx restart" --post-hook "service dev restart" >> /dev/null 2>&1')| crontab -
         fi
 }
@@ -686,21 +679,13 @@ EOF
             ufw allow 2021
 			ufw allow 2022
             ufw allow 3306
+        elif [ "$installoption" = "2" ]; then
+            ufw allow 80
+            ufw allow 8080
+            ufw allow 8443
+            ufw allow 2021
+            ufw allow 2022
         elif [ "$installoption" = "3" ]; then
-            ufw allow 80
-            ufw allow 8080
-            ufw allow 8443
-            ufw allow 2021
-            ufw allow 2022
-        elif [ "$installoption" = "5" ]; then
-            ufw allow 80
-            ufw allow 443
-            ufw allow 8080
-            ufw allow 8443
-            ufw allow 2021
-            ufw allow 2022
-            ufw allow 3306
-        elif [ "$installoption" = "7" ]; then
             ufw allow 80
             ufw allow 443
             ufw allow 8080
@@ -859,20 +844,10 @@ case $installoption in
              install_wings
              broadcast
              ;;
-        7)   webserver_options
-             required_infos
-             ssl_certs
-             setup_pterodactyl
-             install_wings
-             broadcast
-             ;;
         18)  install_phpmyadmin
              ;;
-        19)  install_dependencies
-             install_database
-             ;;
-        21) curl -sSL https://raw.githubusercontent.com/tommytran732/MariaDB-Root-Password-Reset/master/mariadb-104.sh | sudo bash
+        19) curl -sSL https://raw.githubusercontent.com/tommytran732/MariaDB-Root-Password-Reset/master/mariadb-104.sh | sudo bash
             ;;
-        22) database_host_reset
+        20) database_host_reset
             ;;
 esac
