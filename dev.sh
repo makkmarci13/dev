@@ -20,7 +20,6 @@ preflight(){
 
     output "Please note that this script is meant to be installed on a fresh OS. Installing it on a non-fresh OS may cause problems."
     output "Automatic operating system detection initialized..."
-	sudo -i
     os_check
 
     if [ "$EUID" -ne 0 ]; then

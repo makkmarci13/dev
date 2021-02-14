@@ -17,10 +17,9 @@ preflight(){
     output "Copyright © 2020 Oreo Cat <oreocatadl@gmail.com>."
     output "Please join my Discord for community support: discord.gg/2muhG62pZB"
     output ""
-
     output "Please note that this script is meant to be installed on a fresh OS. Installing it on a non-fresh OS may cause problems."
     output "Automatic operating system detection initialized..."
-	sudo -i
+
     os_check
 
     if [ "$EUID" -ne 0 ]; then
